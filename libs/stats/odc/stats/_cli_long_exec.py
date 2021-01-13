@@ -17,7 +17,7 @@ def mock_log_run(dryrun):
     """
        Mock long executing tasks
     """
-    start_t = time.time()
+    start_t =datetime.now()
     sqs_queue = get_queue('deafrica-prod-eks-stats-geomedian')
     for msg in get_messages(sqs_queue, visibility_timeout=1260):
         while (datetime.now() - start_t).total_seconds() < 1200:
