@@ -1,5 +1,7 @@
 import time
 import numpy as np
+import boto3
+
 import click
 from datetime import datetime
 
@@ -26,8 +28,8 @@ def mock_log_run(dryrun):
             Wl3 = wl1 * wl2
             msg.delete()
 
-    s3 = boto3.resource('s3')
-    object = s3.Object('deafrica-data', f'esa/s2/ga_s2_clear_pixel_count/0.0.1/test/{msg}.txt')
-    object.put(Body=b'some data')
-    print("DONE")
+            s3 = boto3.resource('s3')
+            object = s3.Object('deafrica-data', f'esa/s2/ga_s2_clear_pixel_count/0.0.1/test/{msg}.txt')
+            object.put(Body=b'some data')
+            print("wrote esa/s2/ga_s2_clear_pixel_count/0.0.1/test/{msg}.txt to s3://deafrica-data")
 
