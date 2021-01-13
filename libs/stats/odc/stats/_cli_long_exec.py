@@ -20,11 +20,11 @@ def mock_log_run(dryrun):
     start_t = datetime.now()
     sqs_queue = get_queue('deafrica-prod-eks-stats-geomedian')
     for msg in get_messages(sqs_queue, visibility_timeout=1260):
-        # while (datetime.now() - start_t).total_seconds() < 1200:
+        while (datetime.now() - start_t).total_seconds() < 1:
             wl1 = np.random.normal(0,1,(100000,10000))
             wl2 = np.random.normal(0,1,(100000,10000))
             Wl3 = wl1 * wl2
-        msg.delete()
+            msg.delete()
 
     s3 = boto3.resource('s3')
     object = s3.Object('deafrica-data', f'esa/s2/ga_s2_clear_pixel_count/0.0.1/test/{msg}.txt')
