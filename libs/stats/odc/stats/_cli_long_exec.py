@@ -1,6 +1,7 @@
 import time
 import numpy as np
 import click
+from datetime import datetime
 
 from ._cli_common import main
 from odc.aws.queue import get_messages, get_queue
