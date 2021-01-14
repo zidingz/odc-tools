@@ -21,6 +21,7 @@ def mock_log_run(dryrun):
        Mock long executing tasks
     """
     start_t = datetime.now()
+    os.environ['RUN_STATUS'] = '0'
     sqs_queue = get_queue('deafrica-prod-eks-stats-geomedian')
     for msg in get_messages(sqs_queue, visibility_timeout=1200):
         print(msg.body)
@@ -35,4 +36,3 @@ def mock_log_run(dryrun):
         print(f"wrote esa/s2/ga_s2_clear_pixel_count/0.0.1/test/{msg.body}.txt to s3://deafrica-data")
         os.environ['RUN_STATUS'] = '1'
         msg.delete()
-
