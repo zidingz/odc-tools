@@ -25,7 +25,7 @@ def mock_log_run(dryrun):
     sqs_queue = get_queue('deafrica-prod-eks-stats-geomedian')
     for msg in get_messages(sqs_queue, visibility_timeout=1200):
         print(msg.body)
-        while (datetime.now() - start_t).total_seconds() < 600:
+        while (datetime.now() - start_t).total_seconds() < 180:
             wl1 = np.random.normal(0,1,(100000,10000))
             wl2 = np.random.normal(0,1,(100000,10000))
             Wl3 = wl1 * wl2
