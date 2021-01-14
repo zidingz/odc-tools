@@ -2,7 +2,7 @@ import time
 import os
 import numpy as np
 import boto3
- import logging
+import logging
 
 import click
 from datetime import datetime
