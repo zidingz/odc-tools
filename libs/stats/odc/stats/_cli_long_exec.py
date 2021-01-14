@@ -23,11 +23,11 @@ def mock_log_run(dryrun):
     """
     setup_logging()
     _log = logging.getLogger(__name__)
-    start_t = datetime.now()
     os.environ['RUN_STATUS'] = '0'
     sqs_queue = get_queue('deafrica-prod-eks-stats-geomedian')
     for msg in get_messages(sqs_queue, visibility_timeout=1200):
-        _log.info(f'procesing {msg.body}')
+        start_t = datetime.now()
+        _log.info(f'processing {msg.body}')
         while (datetime.now() - start_t).total_seconds() < 600:
             wl1 = np.random.normal(0,1,(100000,10000))
             wl2 = np.random.normal(0,1,(100000,10000))
