@@ -217,8 +217,7 @@ class S3COGSink:
             2. single_band: {"measurement":'frequency', 'bit':1, 'display_bands': ['blue']} or 
             3. single_band: {"measurement":'frequency', 'bit':1, 'display_bands': ['red', 'green', 'blue']}
         """
-        band = single_band['measurement']
-        thumbnail_path = odc_file_path.split('.')[0] + f"_{band}_thumbnail.jpg"
+        thumbnail_path = odc_file_path.split('.')[0] + f"_thumbnail.jpg"
         zero_band = numpy.zeros((task.geobox.shape[0], task.geobox.shape[1]))
 
         # if use lookup_table to tune pixel, it will return [numpy.Array, numpy.Array, numpy.Array]
@@ -259,8 +258,7 @@ class S3COGSink:
             if display_band in multi_band:
                 nodata_val = ds[multi_band[display_band]].nodata if 'nodata' in ds[multi_band[display_band]].attrs else None
 
-        thumbnail_name = multi_band['thumbnail_name']
-        thumbnail_path = odc_file_path.split('.')[0] + f"_{thumbnail_name}_thumbnail.jpg"
+        thumbnail_path = odc_file_path.split('.')[0] + f"_thumbnail.jpg"
 
         thumbnail_bytes = FileWrite().create_thumbnail_from_numpy(rgb=display_pixels,
                                                                   input_geobox=input_geobox,
@@ -396,13 +394,13 @@ class S3COGSink:
         if task.product.preview_image_singleband:
             for single_band in task.product.preview_image_singleband:
                 band = single_band['measurement']
-                thumbnail_path = odc_file_path.split('.')[0] + f"_{band}_thumbnail.jpg"
+                thumbnail_path = odc_file_path.split('.')[0] + f"_thumbnail.jpg"
                 dataset_assembler._accessories[f"thumbnail:{band}"] = Path(urlparse(thumbnail_path).path).name
 
         if task.product.preview_image:
             for single_image in task.product.preview_image:
                 thumbnail_name = single_image['thumbnail_name']
-                thumbnail_path = odc_file_path.split('.')[0] + f"_{thumbnail_name}_thumbnail.jpg"
+                thumbnail_path = odc_file_path.split('.')[0] + f"_thumbnail.jpg"
                 dataset_assembler._accessories[f"thumbnail:{thumbnail_name}"] = Path(urlparse(thumbnail_path).path).name
 
         dataset_assembler._accessories["checksum:sha1"] = Path(urlparse(sha1_url).path).name

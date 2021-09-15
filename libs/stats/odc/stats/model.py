@@ -311,13 +311,20 @@ class Task:
         product = self.product
         region_code = product.region_code(self.tile_index)
         file_prefix = f"{product.short_name}_{region_code}_{self.short_time}"
+        parent_folder = f"{product.location}/{self.location}"
+
+        # put maturity value: e.g. final as part of prefix
+        maturity = self.product.maturity
 
         if relative_to == "dataset":
-            return file_prefix
+            return file_prefix if (maturity is None) \
+                                    else file_prefix + "_" + maturity
         elif relative_to == "product":
-            return self.location + "/" + file_prefix
+            return self.location + "/" + file_prefix if (maturity is None) \
+                                    else self.location + "/" + file_prefix + "_" + maturity
         else:
-            return product.location + "/" + self.location + "/" + file_prefix
+            return parent_folder + "/" + file_prefix if (maturity is None) \
+                                     else parent_folder + "/" + file_prefix + "_" + maturity
 
     def paths(
         self, relative_to: str = "dataset", ext: str = EXT_TIFF
@@ -362,7 +369,8 @@ class Task:
         
         # ignore the tons of Inheritable property warnings
         warnings.simplefilter(action='ignore', category=UserWarning)
-        platforms = [] # platforms are the concat value in stats
+
+        platforms, datetimes, start_datetimes, end_datetimes = ([] for i in range(4))
 
         for dataset in self.datasets:
             if 'fused' in dataset.type.name:
@@ -378,14 +386,23 @@ class Task:
                                                     auto_inherit_properties=True, # it will grab all useful input dataset preperties
                                                     inherit_geometry=True,
                                                     inherit_skip_properties=self.product.inherit_skip_properties)
+
                 if 'eo:platform' in source_datasetdoc.properties:
                     platforms.append(source_datasetdoc.properties['eo:platform'])
 
-        # set the warning message back
-        warnings.filterwarnings('default')
+                if 'datetime' in source_datasetdoc.properties:
+                    datetimes.append(source_datasetdoc.properties['datetime'])
 
-        if len(platforms) > 0:
-            dataset_assembler.platform = ','.join(sorted(set(platforms)))
+                if 'dtr:start_datetime' in source_datasetdoc.properties:
+                    start_datetimes.append(source_datasetdoc.properties['dtr:start_datetime'])
+
+                if 'dtr:end_datetime' in source_datasetdoc.properties:
+                    end_datetimes.append(source_datasetdoc.properties['dtr:end_datetime'])
+
+        dataset_assembler.platform = ','.join(sorted(set(platforms)))
+        dataset_assembler.datetime = sorted(datetimes)[0]
+        dataset_assembler.properties['dtr:start_datetime'] = sorted(start_datetimes)[0]
+        dataset_assembler.properties['dtr:end_datetime'] = sorted(end_datetimes)[-1]
 
         # inherit properties from cfg
         for product_property_name, product_property_value in self.product.properties.items():
@@ -394,6 +411,9 @@ class Task:
         dataset_assembler.product_name = self.product.name
         dataset_assembler.dataset_version = self.product.version
         dataset_assembler.region_code = self.product.region_code(self.tile_index)
+
+        # set the warning message back
+        warnings.filterwarnings('default')
 
         if processing_dt is None:
             processing_dt = datetime.utcnow()
@@ -530,7 +550,7 @@ class StatsPluginInterface(ABC):
         preview_image: Optional[List[Any]] = None,
         preview_image_singleband: Optional[List[Any]] = None,
         classifier: str = "level3",
-        maturity: str = "final",
+        maturity: Optional[str] = None,
         collection_number: int = 3,
         nodata: Optional[Dict[str, int]] = None
     ) -> OutputProduct:
@@ -549,7 +569,7 @@ class StatsPluginInterface(ABC):
         :param preview_image: three measurement display as a thumbnail setting. Three values map to green, red and blue.
         :param preview_image_singleband: each measurment display as a thumbnail setting.
         :param classifier: default ``level3``
-        :param maturity: default ``final``
+        :param maturity: default ``None``
         :param collection_number: default ``3``
         :param nodata: band level nodata information. Pass it to eodatasets3 library only.
         """
