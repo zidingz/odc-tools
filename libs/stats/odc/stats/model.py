@@ -370,13 +370,12 @@ class Task:
         # ignore the tons of Inheritable property warnings
         warnings.simplefilter(action='ignore', category=UserWarning)
 
-        platforms, datetimes, start_datetimes, end_datetimes = ([] for i in range(4))
+        platforms = []
 
         for dataset in self.datasets:
             if 'fused' in dataset.type.name:
                 sources = [e['id'] for e in dataset.metadata.sources.values()]
                 platforms.append(dataset.metadata_doc['properties']['eo:platform'])
-                dataset_assembler.datetime = dataset.metadata_doc['properties']['datetime']
                 dataset_assembler.note_source_datasets(self.product.classifier,
                                                        *sources)
             else:
@@ -390,19 +389,10 @@ class Task:
                 if 'eo:platform' in source_datasetdoc.properties:
                     platforms.append(source_datasetdoc.properties['eo:platform'])
 
-                if 'datetime' in source_datasetdoc.properties:
-                    datetimes.append(source_datasetdoc.properties['datetime'])
-
-                if 'dtr:start_datetime' in source_datasetdoc.properties:
-                    start_datetimes.append(source_datasetdoc.properties['dtr:start_datetime'])
-
-                if 'dtr:end_datetime' in source_datasetdoc.properties:
-                    end_datetimes.append(source_datasetdoc.properties['dtr:end_datetime'])
-
         dataset_assembler.platform = ','.join(sorted(set(platforms)))
-        dataset_assembler.datetime = sorted(datetimes)[0]
-        dataset_assembler.properties['dtr:start_datetime'] = sorted(start_datetimes)[0]
-        dataset_assembler.properties['dtr:end_datetime'] = sorted(end_datetimes)[-1]
+        dataset_assembler.datetime = format_datetime(self.time_range.start)
+        dataset_assembler.properties["dtr:start_datetime"] = format_datetime(self.time_range.start)
+        dataset_assembler.properties["dtr:end_datetime"] = format_datetime(self.time_range.end)
 
         # inherit properties from cfg
         for product_property_name, product_property_value in self.product.properties.items():
