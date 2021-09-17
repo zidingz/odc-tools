@@ -214,8 +214,8 @@ class S3COGSink:
             out.append(self._write_blob(cog_bytes, url, ContentType="image/tiff"))
         return out
 
-    def _apply_color_ramp(self, ds: xr.Dataset, thumbnail_info: Dict[str, str], task: Task):
-        ows_style_dict = getattr(ows_cfg_example, thumbnail_info['ows_style'])
+    def _apply_color_ramp(self, ds: xr.Dataset, ows_style_name: str, task: Task):
+        ows_style_dict = getattr(ows_cfg_example, ows_style_name)
         ows_style = StandaloneStyle(ows_style_dict)
         # assign the time to xr.Dataset cause ows needs it
         time_da = xr.Dataset({"time": task.time_range.start})
@@ -223,30 +223,20 @@ class S3COGSink:
         return apply_ows_style(ows_style, dst)
 
 
-    def _get_thumbnail(self, ds: xr.Dataset, task: Task, thumbnail_info: Dict[str, str], input_geobox: GridSpec, odc_file_path: str, rgba_mode: bool = False) -> Delayed:
-        """
-        The thumbnail Dict can be:
-            1. thumbnail: {'default_bands': 'frequency', 'ows_style': 'style_wofs_frequency'} or
-            2. thumbnail: {'default_bands': 'rgba'}
-        """
-
+    def _get_thumbnail(self, ds: xr.Dataset, task: Task, ows_style_name: str, input_geobox: GridSpec, odc_file_path: str) -> Delayed:
         display_pixels = []
 
-        image = self._apply_color_ramp(ds, thumbnail_info, task)
+        image = self._apply_color_ramp(ds, ows_style_name, task)
 
+        # apply the OWS styling, the return image must have red, green, blue and alpha.
         for display_band in ['red', 'green', 'blue']:
-            if rgba_mode: # if rgba mode, display original red, green, blue band
-                display_pixels.append(ds[display_band].values.reshape([task.geobox.shape[0], task.geobox.shape[1]]))
-            else:
-                display_pixels.append(image[display_band].values.reshape([task.geobox.shape[0], task.geobox.shape[1]]))
+            display_pixels.append(image[display_band].values.reshape([task.geobox.shape[0], task.geobox.shape[1]]))
 
-        nodata_val = ds[thumbnail_info['default_bands']].nodata if 'nodata' in ds[thumbnail_info['default_bands']].attrs else None
-        
         thumbnail_bytes = FileWrite().create_thumbnail_from_numpy(rgb=display_pixels,
                                                                   static_stretch=(0, 255),
                                                                   out_scale=10,
                                                                   input_geobox=input_geobox,
-                                                                  nodata=nodata_val)
+                                                                  nodata=None)
 
         # thumbnail_bytes = xarray_image_as_png(image) # this is ows-styling output, leave it as reference
 
@@ -261,17 +251,13 @@ class S3COGSink:
                                 transform=task.geobox.transform, 
                                 crs=CRS.from_epsg(task.geobox.crs.to_epsg()))
 
-        if task.product.preview_image:
-            for thumbnail_info in task.product.preview_image:
-                if 'ows_style' in thumbnail_info:
-                    try:
-                        thumbnail_cog = self._get_thumbnail(ds, task, thumbnail_info, input_geobox, odc_file_path)
-                        thumbnail_cogs.append(thumbnail_cog)
-                    except AttributeError:
-                        _log.error(f"No OWS style: {thumbnail_info['ows_style']}")
-                else:
-                    thumbnail_cog = self._get_thumbnail(ds, task, thumbnail_info, input_geobox, odc_file_path, rgba_mode=True)
-                    thumbnail_cogs.append(thumbnail_cog)
+        if task.product.preview_image_ows_style:
+            ows_style_name = task.product.preview_image_ows_style
+            try:
+                thumbnail_cog = self._get_thumbnail(ds, task, ows_style_name, input_geobox, odc_file_path)
+                thumbnail_cogs.append(thumbnail_cog)
+            except AttributeError:
+                _log.error(f"No OWS styling name: {preview_image_ows_style}.")
 
         return thumbnail_cogs
 
@@ -377,11 +363,9 @@ class S3COGSink:
                                                 # Just realized the odc-stats does not have version.
                                                 proc.VERSION)
 
-        if task.product.preview_image:
-            for single_image in task.product.preview_image:
-                default_bands = single_image['default_bands']
-                thumbnail_path = odc_file_path.split('.')[0] + f"_thumbnail.jpg"
-                dataset_assembler._accessories[f"thumbnail:{default_bands}"] = Path(urlparse(thumbnail_path).path).name
+        if task.product.preview_image_ows_style:
+            thumbnail_path = odc_file_path.split('.')[0] + f"_thumbnail.jpg"
+            dataset_assembler._accessories["thumbnail"] = Path(urlparse(thumbnail_path).path).name
 
         dataset_assembler._accessories["checksum:sha1"] = Path(urlparse(sha1_url).path).name
         dataset_assembler._accessories["metadata:processor"] = Path(urlparse(proc_info_url).path).name
