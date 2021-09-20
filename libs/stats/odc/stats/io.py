@@ -40,6 +40,7 @@ import datacube_ows.ows_cfg_example as ows_cfg_example
 from datacube_ows.styles.api import apply_ows_style
 from datacube_ows.styles.api import xarray_image_as_png
 from datacube_ows.styles.api import StandaloneStyle
+import datacube_ows
 
 WriteResult = namedtuple("WriteResult", ["path", "sha1", "error"])
 
@@ -366,6 +367,11 @@ class S3COGSink:
         if task.product.preview_image_ows_style:
             thumbnail_path = odc_file_path.split('.')[0] + f"_thumbnail.jpg"
             dataset_assembler._accessories["thumbnail"] = Path(urlparse(thumbnail_path).path).name
+
+            dataset_assembler.note_software_version("datacube-ows",
+                                                    "https://github.com/opendatacube/datacube-ows",
+                                                    # Just realized the odc-stats does not have version.
+                                                    datacube_ows.__version__)
 
         dataset_assembler._accessories["checksum:sha1"] = Path(urlparse(sha1_url).path).name
         dataset_assembler._accessories["metadata:processor"] = Path(urlparse(proc_info_url).path).name
