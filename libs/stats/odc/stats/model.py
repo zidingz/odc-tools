@@ -161,7 +161,7 @@ class OutputProduct:
     naming_conventions_values: str = "dea_c3"
     explorer_path: str = "https://explorer.dea.ga.gov.au/"
     inherit_skip_properties: Optional[List[str]] = None
-    preview_image_ows_style: Optional[str] = None
+    preview_image_ows_style: Optional[Dict[str, Any]] = None
     classifier: str = "level3"
     maturity: str = "final"
     collection_number: int = 3
@@ -420,7 +420,7 @@ class Task:
                                                     grid=GridSpec(shape=self.geobox.shape,
                                                                     transform=self.geobox.transform,
                                                                     crs=CRS.from_epsg(self.geobox.crs.to_epsg())),
-                                                    nodata=output_dataset[band].nodata if 'nodata' in output_dataset[band].attrs else 'None')
+                                                    nodata=output_dataset[band].nodata if 'nodata' in output_dataset[band].attrs else None)
 
         return dataset_assembler
 
@@ -536,7 +536,7 @@ class StatsPluginInterface(ABC):
         naming_conventions_values: str = "dea_c3",
         explorer_path: str = "https://explorer.dea.ga.gov.au",
         inherit_skip_properties: Optional[List[str]] = None,
-        preview_image_ows_style: Optional[str] = None,
+        preview_image_ows_style: Optional[Dict[str, Any]] = None,
         classifier: str = "level3",
         maturity: Optional[str] = None,
         collection_number: int = 3,
@@ -554,7 +554,7 @@ class StatsPluginInterface(ABC):
         :param naming_conventions_values: default ``dea_c3``
         :param explorer_path: default ``https://explorer.dea.ga.gov.au``
         :param inherit_skip_properties: block properties from source datasets.
-        :param preview_image_ows_style: define ows_styling_name
+        :param preview_image_ows_style: define ows_styling_dict
         :param classifier: default ``level3``
         :param maturity: default ``None``
         :param collection_number: default ``3``

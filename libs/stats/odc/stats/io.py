@@ -36,7 +36,6 @@ from eodatasets3.images import FileWrite, GridSpec
 import eodatasets3.stac as eo3stac
 import eodatasets3
 
-import datacube_ows.ows_cfg_example as ows_cfg_example
 from datacube_ows.styles.api import apply_ows_style
 from datacube_ows.styles.api import xarray_image_as_png
 from datacube_ows.styles.api import StandaloneStyle
@@ -215,8 +214,7 @@ class S3COGSink:
             out.append(self._write_blob(cog_bytes, url, ContentType="image/tiff"))
         return out
 
-    def _apply_color_ramp(self, ds: xr.Dataset, ows_style_name: str, task: Task):
-        ows_style_dict = getattr(ows_cfg_example, ows_style_name)
+    def _apply_color_ramp(self, ds: xr.Dataset, ows_style_dict: dict, task: Task):
         ows_style = StandaloneStyle(ows_style_dict)
         # assign the time to xr.Dataset cause ows needs it
         time_da = xr.Dataset({"time": task.time_range.start})
@@ -224,11 +222,10 @@ class S3COGSink:
         return apply_ows_style(ows_style, dst)
 
 
-    def _get_thumbnail(self, ds: xr.Dataset, task: Task, ows_style_name: str, input_geobox: GridSpec, odc_file_path: str) -> Delayed:
+    def _get_thumbnail(self, ds: xr.Dataset, task: Task, ows_style_dict: dict, input_geobox: GridSpec, odc_file_path: str) -> Delayed:
         display_pixels = []
 
-        image = self._apply_color_ramp(ds, ows_style_name, task)
-
+        image = self._apply_color_ramp(ds, ows_style_dict, task)
         # apply the OWS styling, the return image must have red, green, blue and alpha.
         for display_band in ['red', 'green', 'blue']:
             display_pixels.append(image[display_band].values.reshape([task.geobox.shape[0], task.geobox.shape[1]]))
@@ -253,12 +250,12 @@ class S3COGSink:
                                 crs=CRS.from_epsg(task.geobox.crs.to_epsg()))
 
         if task.product.preview_image_ows_style:
-            ows_style_name = task.product.preview_image_ows_style
+            ows_style_dict = task.product.preview_image_ows_style
             try:
-                thumbnail_cog = self._get_thumbnail(ds, task, ows_style_name, input_geobox, odc_file_path)
+                thumbnail_cog = self._get_thumbnail(ds, task, ows_style_dict, input_geobox, odc_file_path)
                 thumbnail_cogs.append(thumbnail_cog)
             except AttributeError:
-                _log.error(f"No OWS styling name: {preview_image_ows_style}.")
+                _log.error(f"Cannot parse OWS styling: {ows_style_dict}.")
 
         return thumbnail_cogs
 
